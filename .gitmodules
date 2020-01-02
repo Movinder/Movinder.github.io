@@ -1,0 +1,3 @@
+[submodule "movielens-imdb-exploration"]
+	path = movielens-imdb-exploration
+	url = https://github.com/Movinder/movielens-imdb-exploration.git

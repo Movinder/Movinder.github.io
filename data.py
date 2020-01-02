@@ -1,0 +1,136 @@
+import pandas as pd
+import datetime, time
+import os
+import random
+import numpy as np
+import scipy.sparse as sp
+
+
+def string2ts(string, fmt="%Y-%m-%d %H:%M:%S"):
+    dt = datetime.datetime.strptime(string, fmt)
+    t_tuple = dt.timetuple()
+    return int(time.mktime(t_tuple))
+
+def slice_by_lengths(lengths, the_list):
+    for length in lengths:
+        new = []
+        for i in range(length):
+            new.append(the_list.pop(0))
+        yield new
+
+
+def read_data():
+    # MOVIES
+    df_movies = pd.read_csv("data/movies_cast_company.csv", encoding='utf8')
+    df_movies["cast"] = df_movies["cast"].apply(lambda x: json.loads(x))
+    df_movies["company"] = df_movies["company"].apply(lambda x: json.loads(x))
+
+    # TODO: just temporary, later remove
+    df_movies = df_movies.drop(["url"]+list(df_movies.columns[-4:]), axis=1)
+
+
+    # RATINGS
+    df_ratings = pd.read_csv("data/ratings.csv")
+    df_ratings.rating_timestamp = df_ratings.rating_timestamp.apply(lambda x: string2ts(x))
+
+
+    # USERS
+    df_users = pd.read_csv("data/users.csv")
+
+    # TODO: just temporary, later remove
+    additional_rows = ["user_zipcode"]
+    df_users = df_users.drop(additional_rows, axis=1)
+
+    num2occupation = dict(enumerate(df_users.user_occupation.unique()))
+    occupation2num = {y:x for x,y in num2occupation.items()}
+    num2gender = dict(enumerate(df_users.user_gender.unique()))
+    gender2num = {y:x for x,y in num2gender.items()}
+    df_users.user_occupation = df_users.user_occupation.apply(lambda x: occupation2num[x])
+    df_users.user_gender = df_users.user_gender.apply(lambda x: gender2num[x])
+
+    # ALL
+    df = pd.merge(df_movies, df_ratings, on="movie_id_ml")
+    df = pd.merge(df, df_users, on="user_id")
+
+    # Creating UID, IID, FID
+    # movies
+    id2movie = dict(enumerate(df.movie_id_ml.unique()))
+    movie2id = {y:x for x,y in id2movie.items()}
+
+    # users
+    id2user = dict(enumerate(df.user_id.unique()))
+    user2id = {y:x for x,y in id2user.items()}
+
+    user_ids = list(df_users.user_id.unique())
+    total_users = len(user_ids)
+    lengths_sum = 0
+    lengths = []
+
+    for i in range(total_users):
+        length = random.randint(2, 8)
+        
+        if lengths_sum+length > total_users:
+            length = total_users - lengths_sum
+            lengths_sum += length
+            lengths.append(length)
+            break
+        elif lengths_sum+length == total_users:
+            lengths_sum += length
+            lengths.append(length)
+            break
+        else:
+            lengths_sum += length
+            lengths.append(length)
+            
+    friend_ids = [i for i in enumerate(slice_by_lengths(lengths, user_ids))]
+    print(f"Number of friend groupd: {len(friend_ids)}, max {max(friend_ids)[0]}")
+
+    user2friendsid = {}
+    for fid_and_uids in friend_ids:
+        for uid in fid_and_uids[1]:
+            user2friendsid[uid] = fid_and_uids[0]
+
+    df["iid"] = df.apply(lambda x: movie2id[x.movie_id_ml], axis=1)
+    df["uid"] = df.apply(lambda x: user2id[x.user_id], axis=1)
+    df["fid"] = df.apply(lambda x: user2friendsid[x.user_id], axis=1)
+
+
+    fid2avgage = dict(df.groupby("fid")["user_age"].agg(np.mean))
+    fid2medianrating = dict(df.groupby(["fid","iid"])["rating"].agg(np.median))
+
+    df["fid_user_avg_age"] = df.apply(lambda x: fid2avgage[x.fid], axis=1)
+    df["rating"] = df.apply(lambda x: fid2medianrating[(x.fid, x.iid)], axis=1)
+
+
+    df = df.drop(["uid", "user_gender", "user_occupation", "user_age", "user_id", "rating_timestamp"], axis=1)
+
+    df = df.drop_duplicates()
+
+
+    # shape [n_users, n_user_features]
+    df_friends = df[["fid", "fid_user_avg_age"]].drop_duplicates()
+    print(f"Number of friends features: {df_friends.shape[0]}")
+
+    df_movies = df[["iid"]+list(df.columns[3:22])].drop_duplicates()
+    print(f"Number of movies features: {df_movies.shape[0]}")
+
+    return df, df_friends, df_movies
+
+def add_new_friends(friends_id, friends_age, friends_movie_ratings, df, df_friends, df_movies):
+    df_friends = df_friends.append({"fid": friends_id, "fid_user_avg_age":friends_age}, ignore_index=True)
+    print(f"New number of friends features: {df_friends.shape[0]}")
+    print(f"New number of movies features: {df_movies.shape[0]}")
+
+    data_new_friends_training = []
+    for x in friends_movie_ratings:
+        data_new_friends_training.append([friends_id]+list(x)+[friends_age])
+
+    # user initial input that will be given to him to rate it before recommendation
+    df_new_friends_train = pd.DataFrame(data_new_friends_training, columns=columns)
+
+    df = pd.concat([df, df_new_friends_train], sort=False)
+
+    df = df[["fid", "iid", "rating"]].astype(np.int64)
+    #df_new_friends_train = df_new_friends_train[["fid", "iid", "rating"]].astype(np.int64)
+
+    return df, df_friends, df_movies

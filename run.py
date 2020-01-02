@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, send_from_directory
 import os
 
 
+
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(ROOT_DIR, "templates")
 
@@ -19,6 +21,17 @@ def recommendation():
 	if request.method == 'POST':
 		data = {}
 		return render_template('recommended_movies.html', data=data)
+
+
+
+def training():
+	train = create_sparse_matrix(df_train)#, mat_type="ratings")
+
+	# shape [n_users, n_user_features]
+	friends_features = sp.csr_matrix(df_friends.values)
+	item_features = sp.csr_matrix(df_movies.values)
+
+
 
 
 if __name__ == '__main__':

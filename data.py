@@ -4,7 +4,13 @@ import os
 import random
 import numpy as np
 import scipy.sparse as sp
+import json
+from IPython.display import Image
+import base64
+from imdbpie import Imdb
+import requests
 
+DATA_DIR = "movielens-imdb-exploration/data"
 
 def string2ts(string, fmt="%Y-%m-%d %H:%M:%S"):
     dt = datetime.datetime.strptime(string, fmt)
@@ -19,27 +25,27 @@ def slice_by_lengths(lengths, the_list):
         yield new
 
 
-def read_data():
+def initial_data():
     # MOVIES
-    df_movies = pd.read_csv("data/movies_cast_company.csv", encoding='utf8')
+    df_movies = pd.read_csv(f"{DATA_DIR}/movies_cast_company.csv", encoding='utf8')
     df_movies["cast"] = df_movies["cast"].apply(lambda x: json.loads(x))
     df_movies["company"] = df_movies["company"].apply(lambda x: json.loads(x))
 
     # TODO: just temporary, later remove
-    df_movies = df_movies.drop(["url"]+list(df_movies.columns[-4:]), axis=1)
+    df_movies = df_movies.drop(['movie_id', 'keyword', 'cast', 'company'], axis=1)
 
 
     # RATINGS
-    df_ratings = pd.read_csv("data/ratings.csv")
+    df_ratings = pd.read_csv(f"{DATA_DIR}/ratings.csv")
     df_ratings.rating_timestamp = df_ratings.rating_timestamp.apply(lambda x: string2ts(x))
 
 
     # USERS
-    df_users = pd.read_csv("data/users.csv")
+    df_users = pd.read_csv(f"{DATA_DIR}/users.csv")
 
     # TODO: just temporary, later remove
-    additional_rows = ["user_zipcode"]
-    df_users = df_users.drop(additional_rows, axis=1)
+    #additional_rows = ["user_zipcode"]
+    #df_users = df_users.drop(additional_rows, axis=1)
 
     num2occupation = dict(enumerate(df_users.user_occupation.unique()))
     occupation2num = {y:x for x,y in num2occupation.items()}
@@ -48,9 +54,12 @@ def read_data():
     df_users.user_occupation = df_users.user_occupation.apply(lambda x: occupation2num[x])
     df_users.user_gender = df_users.user_gender.apply(lambda x: gender2num[x])
 
+    df_posters = pd.read_csv(f"{DATA_DIR}/movie_poster.csv", names=["movie_id_ml", "poster_url"])
+
     # ALL
     df = pd.merge(df_movies, df_ratings, on="movie_id_ml")
     df = pd.merge(df, df_users, on="user_id")
+    df = pd.merge(df, df_posters, on="movie_id_ml")
 
     # Creating UID, IID, FID
     # movies
@@ -108,15 +117,15 @@ def read_data():
 
 
     # shape [n_users, n_user_features]
-    df_friends = df[["fid", "fid_user_avg_age"]].drop_duplicates()
+    df_friends = df[['fid', 'fid_user_avg_age']].drop_duplicates()
     print(f"Number of friends features: {df_friends.shape[0]}")
 
-    df_movies = df[["iid"]+list(df.columns[3:22])].drop_duplicates()
+    df_movies = df[['iid', 'unknown', 'action', 'adventure', 'animation', 'childrens', 'comedy', 'crime', 'documentary', 'drama', 'fantasy', 'noir', 'horror', 'musical', 'mystery', 'romance', 'scifi', 'thriller', 'war', 'western']].drop_duplicates()
     print(f"Number of movies features: {df_movies.shape[0]}")
 
-    return df, df_friends, df_movies
+    return df, df_friends, df_movies, len(friend_ids)
 
-def add_new_friends(friends_id, friends_age, friends_movie_ratings, df, df_friends, df_movies):
+def update_data(friends_id, friends_age, friends_movie_ratings, df, df_friends, df_movies):
     df_friends = df_friends.append({"fid": friends_id, "fid_user_avg_age":friends_age}, ignore_index=True)
     print(f"New number of friends features: {df_friends.shape[0]}")
     print(f"New number of movies features: {df_movies.shape[0]}")
@@ -125,12 +134,31 @@ def add_new_friends(friends_id, friends_age, friends_movie_ratings, df, df_frien
     for x in friends_movie_ratings:
         data_new_friends_training.append([friends_id]+list(x)+[friends_age])
 
+    columns = ["fid", "iid", "rating", "fid_user_avg_age"]
     # user initial input that will be given to him to rate it before recommendation
     df_new_friends_train = pd.DataFrame(data_new_friends_training, columns=columns)
 
-    df = pd.concat([df, df_new_friends_train], sort=False)
+    df_train = df.copy()
+    df_train = pd.concat([df_train, df_new_friends_train], sort=False)
 
-    df = df[["fid", "iid", "rating"]].astype(np.int64)
+    df_train = df_train[["fid", "iid", "rating"]].astype(np.int64)
     #df_new_friends_train = df_new_friends_train[["fid", "iid", "rating"]].astype(np.int64)
 
-    return df, df_friends, df_movies
+    return df_train, df_friends, df_movies
+
+
+def get_posters(movie_rows):
+
+    posters = []
+    for _, m in movie_rows.iterrows():
+        print(m['poster_url'])
+        response = requests.get(m['poster_url'])
+        
+        if response.status_code == 200:
+            _base64_encoded_image = base64.b64encode(response.content)
+            posters.append(_base64_encoded_image.decode("utf-8"))
+        else:
+            _base64_encoded_image = base64.b64encode(open("assets/img/logo.jpeg", "rb").read())
+            posters.append(_base64_encoded_image.decode("utf-8"))
+
+    return posters

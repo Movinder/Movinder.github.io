@@ -2,6 +2,9 @@ from lightfm import LightFM
 from lightfm.datasets import fetch_movielens
 from lightfm.evaluation import precision_at_k
 from lightfm.evaluation import auc_score
+import scipy.sparse as sp
+from sklearn.metrics import roc_auc_score
+import numpy as np
 
 def _build_interaction_matrix(rows, cols, data):
 
@@ -56,7 +59,7 @@ def train(data, user_features=None, item_features=None, use_features = False):
     return model
 
 
-def predict_top_k_movies(model, friends_id, k, data, user_features=friends_features, item_features=item_features):
+def predict_top_k_movies(model, friends_id, k, data, user_features=None, item_features=None, use_features=False):
     n_users, n_movies = data.shape
     if use_features:
         prediction = model.predict(friends_id, np.arange(n_movies), user_features=friends_features, item_features=item_features)#predict(model, user_id, np.arange(n_movies))
@@ -67,6 +70,18 @@ def predict_top_k_movies(model, friends_id, k, data, user_features=friends_featu
     # return movie ids
     return movie_ids[np.argsort(-prediction)][:k]
 
+def training(df_train, df_friends, df_movies, new_fid):
+	train_data = create_sparse_matrix(df_train)#, mat_type="ratings")
+
+	# shape [n_users, n_user_features]
+	friends_features = sp.csr_matrix(df_friends.values)
+	item_features = sp.csr_matrix(df_movies.values)
+
+	model = train(train_data, user_features=friends_features, item_features=item_features, use_features = False)
+
+	k = 18
+	top_movie_ids = predict_top_k_movies(model, new_fid, k, train_data, user_features=friends_features, item_features=item_features, use_features = False)
+	return top_movie_ids
 
 # def known_positives_recommendation():
 #     k = 10

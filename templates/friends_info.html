@@ -1,0 +1,86 @@
+<html>
+   <head>
+      <!-- Latest compiled and minified CSS -->
+      <link rel="stylesheet" href="https://bootswatch.com/4/sandstone/bootstrap.min.css">
+		
+      <!-- jQuery library -->
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+      <!-- Icons -->
+      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css">
+      
+      <!-- Favicon -->
+      <link rel="shortcut icon" type="image/png" href="../assets/img/penkalo.png"/>
+      
+      <style>
+            img {
+              display: block;
+              margin-left: auto;
+              margin-right: auto;
+            }
+      </style>
+   </head>
+   <body>
+      <div class="container">
+         <br/><br/>
+         <img src="../assets/img/friends.jpg" class="center" alt="Grap logo" style="width:40%">
+         <br/>
+         <h1>"For it is giving that we receive"</h1><br/>
+        <p>Each of you now needs to fill in the corresponding fields bellow. The more truthfull the information you give, the better the recommendation will be.</p>
+         <br /><br/>
+         <hr/>
+         <form action = "/recommendation-siamese" method="POST">
+
+            {% for friend_id in range(friends_num) %}
+                <h3>Friend #{{friend_id+1}}</h3>
+                <div class="form-group">
+                    <label class="col-form-label" for="Pib">Age:</label>
+                    <input type="number" min="1" class="form-control" name="age_{{friend_id}}" id="age_{{friend_id}}" required>
+                </div>
+
+                <div class="row">
+                    {% for mnp in movie_names_and_posters[friend_id] %}
+                    <div class="col-md-2 form-group">
+                        <div  class="h-40 d-inline-block" style="height: 40px; overflow:hidden;">
+                            <h5>{{mnp['movie_name'].title()}}</h5>
+                        </div>
+                        <div  class="h-80 d-inline-block" style="width: 100%;height: 230px; overflow:hidden;">
+                            <img src="data:image/jpeg;base64,{{ mnp['poster'] }}" style="width:100%;">
+                        </div>
+                        <div  class="h-50 d-inline-block" style="padding: 15px; height: 50px; overflow:hidden;">
+                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                                <label class="btn btn-outline-success">
+                                    <input type="radio" name="btn_group_{{friend_id}}_{{mnp['movie_id']}}" value="like" autocomplete="off" > <i class="fa fa-thumbs-up" aria-pressed="true"></i>
+                                </label>
+                                <label class="btn btn-outline-secondary active">
+                                    <input type="radio" name="btn_group_{{friend_id}}_{{mnp['movie_id']}}" value="dismiss" autocomplete="off" checked> <i class="fa fa-times" aria-pressed="true"></i>
+                                </label>
+                                <label class="btn btn-outline-danger">
+                                    <input type="radio" name="btn_group_{{friend_id}}_{{mnp['movie_id']}}" value="dislike" autocomplete="off"> <i class="fa fa-thumbs-down" aria-pressed="true"></i>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- <label class="col-form-label" for="Pib">Age:</label>
+                        <input type="number" min="1" class="form-control" name="age_{{friend_id}}" id="age_{{friend_id}}" required> -->
+                    </div>
+                    
+                    {% endfor %}
+                </div>
+
+                <hr/>
+            {% endfor %}
+            <br/>
+            <button type="button" class="btn btn-secondary" onclick="history.go(-1)"> < Back</button></Back>
+            <button type="submit" class="btn btn-primary">Next></button>
+
+
+         </form>
+      </div>
+
+      <p id="demo"></p>
+
+   </body>
+</html>

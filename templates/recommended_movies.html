@@ -1,0 +1,66 @@
+<html>
+   <head>
+      <!-- Latest compiled and minified CSS -->
+      <link rel="stylesheet" href="https://bootswatch.com/4/sandstone/bootstrap.min.css">
+		
+      <!-- jQuery library -->
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+      <!-- Icons -->
+      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css">
+      
+      <!-- Favicon -->
+      <link rel="shortcut icon" type="image/png" href="../assets/img/penkalo.png"/>
+      
+      <style>
+            img {
+              display: block;
+              margin-left: auto;
+              margin-right: auto;
+            }
+      </style>
+   </head>
+   <body>
+      <div class="container">
+         <br/><br/>
+         <img src="../assets/img/friends.jpg" class="center" alt="Grap logo" style="width:40%">
+         <br/>
+         <h1>Suggestions</h1><br/>
+        <p>Checkout the recommended movies bellow.</p>
+         <br />
+         <hr/>
+         <form action = "/recommendation-siamese" method="POST">
+
+            
+                <div class="row">
+                    {% for mnp in movie_names_and_posters %}
+                    <div class="col-md-2 form-group">
+                        <div  class="h-40 d-inline-block" style="height: 40px; overflow:hidden;">
+                            <h5>{{mnp['movie_name'].title()}}</h5>
+                        </div>
+                        <div  class="h-80 d-inline-block" style="width: 100%;height: 230px; overflow:hidden;">
+                            <img src="data:image/jpeg;base64,{{ mnp['poster'] }}" style="width:100%;">
+                        </div>
+                
+
+                        <!-- <label class="col-form-label" for="Pib">Age:</label>
+                        <input type="number" min="1" class="form-control" name="age_{{friend_id}}" id="age_{{friend_id}}" required> -->
+                    </div>
+                    
+                    {% endfor %}
+                </div>
+
+                <hr/>
+            <br/>
+            <button type="button" class="btn btn-secondary" onclick="history.go(-2)"> Return Home</button></Back>
+
+
+         </form>
+      </div>
+
+      <p id="demo"></p>
+
+   </body>
+</html>

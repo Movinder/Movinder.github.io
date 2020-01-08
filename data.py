@@ -162,3 +162,49 @@ def get_posters(movie_rows):
             posters.append(_base64_encoded_image.decode("utf-8"))
 
     return posters
+
+
+def get_trending_movie_ids(k, df):
+    df_movie_count_mean = df.groupby(["movie_id_ml", "title"], as_index=False)["rating"].agg(["count", "mean"]).reset_index()
+    C = df_movie_count_mean["mean"].mean()
+    m = df_movie_count_mean["count"].quantile(0.9)
+
+    def weighted_rating(x, m=m, C=C):
+        """Calculation based on the IMDB formula"""
+        v = x['count']
+        R = x['mean']
+        return (v/(v+m) * R) + (m/(m+v) * C)
+
+
+    def onehotencoding2genre(x):
+        ret_val = []
+        for c in genres:
+            g = getattr(x, c)
+            if g == 1:
+                ret_val.append(c)
+        return ret_val
+    
+    genres= ['unknown','action','adventure','animation','childrens','comedy','crime','documentary','drama','fantasy','noir','horror','musical','mystery','romance','scifi','thriller','war','western']
+
+    df_movies = pd.read_csv(f"{DATA_DIR}/movies_cast_company.csv", encoding='utf8')
+    df_movies["cast"] = df_movies["cast"].apply(lambda x: json.loads(x))
+    df_movies["company"] = df_movies["company"].apply(lambda x: json.loads(x))
+    df_movies["genres"] = df_movies.apply(lambda x: onehotencoding2genre(x), axis=1)
+
+
+    df_movies_1 = df_movie_count_mean.copy().loc[df_movie_count_mean["count"] > m]
+    df = pd.merge(df_movies, df_movies_1, on=["movie_id_ml", "title"])
+
+
+    # Define a new feature 'score' and calculate its value with `weighted_rating()`
+    df['score'] = df.apply(weighted_rating, axis=1)
+
+
+    #Sort movies based on score calculated above
+    df = df.sort_values('score', ascending=False).reset_index()
+
+    df = df.head(50)
+
+    df = df.sample(k)
+
+    return list(df.movie_id_ml)

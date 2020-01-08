@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_from_directory
 import os
-from data import initial_data, get_posters, update_data
+from data import initial_data, get_posters, update_data, get_trending_movie_ids
 from siamese_training import training
 import numpy as np
 
@@ -15,7 +15,7 @@ friends_num = 1
 app = Flask(__name__, template_folder=TEMPLATES_DIR)
 
 df, df_friends, df_movies, new_fid = initial_data()
-df_movie_urls = df[["iid", "poster_url", "title"]].drop_duplicates()
+df_movie_urls = df[["iid", "movie_id_ml", "poster_url", "title"]].drop_duplicates()
 
 
 @app.route('/')
@@ -27,13 +27,16 @@ def root():
 def friends():
 	if request.method == 'POST':
 		global friends_num
+		global df
+		global df_movie_urls
 		friends_num = int(request.form['numberOfPeople'])
 		print("Number of people ", friends_num)
 		
 		movie_names_and_posters = []
 		for friend_id in range(friends_num):
 			data = []
-			samples = df_movie_urls.sample(n=12)
+			trending_movie_ids = get_trending_movie_ids(12, df)
+			samples = df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)]
 			
 			for i, t, p in zip(list(samples.iid), list(samples.title), get_posters(samples)):
 				data.append({"poster": p, "movie_name": t, "movie_id": i})
@@ -74,7 +77,7 @@ def serve_dist(path):
 
 def handle_friends_input(data):
 	global friends_num
-	friends_age = np.mean(np.array([ int(data[f"age_{i}"]) for i in range(friends_num)]))
+	friends_age = np.mean(np.array([ int(data[f"age_{i}"]) for i in range(friends_num)])) if friends_num>1 else int(data["age_0"])
 	print(friends_age)
 	
 	movie_and_rating = {}

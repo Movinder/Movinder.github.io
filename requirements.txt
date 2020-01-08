@@ -2,3 +2,6 @@ surprise
 pandas
 lightfm
 flask
+sklearn
+scipy
+numpy

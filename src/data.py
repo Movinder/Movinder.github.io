@@ -10,7 +10,7 @@ import base64
 from imdbpie import Imdb
 import requests
 
-DATA_DIR = "movielens-imdb-exploration/data"
+DATA_DIR = "../movielens-imdb-exploration/data"
 
 def string2ts(string, fmt="%Y-%m-%d %H:%M:%S"):
     dt = datetime.datetime.strptime(string, fmt)
@@ -125,16 +125,17 @@ def initial_data():
 
     return df, df_friends, df_movies, len(friend_ids)
 
-def update_data(friends_id, friends_age, friends_movie_ratings, df, df_friends, df_movies):
-    df_friends = df_friends.append({"fid": friends_id, "fid_user_avg_age":friends_age}, ignore_index=True)
+def update_data(friends_id, ratings, rated_movie_ids, df, df_friends, df_movies):
+    df_friends = df_friends.append({"fid": friends_id, "fid_user_avg_age":0}, ignore_index=True)
     print(f"New number of friends features: {df_friends.shape[0]}")
     print(f"New number of movies features: {df_movies.shape[0]}")
 
     data_new_friends_training = []
-    for x in friends_movie_ratings:
-        data_new_friends_training.append([friends_id]+list(x)+[friends_age])
+    for mid, movie_real_id in enumerate(rated_movie_ids):
+        avg_mv_rating = np.median(np.array([user_ratings[mid] for user_ratings in ratings]))
+        data_new_friends_training.append([friends_id, movie_real_id, avg_mv_rating]) 
 
-    columns = ["fid", "iid", "rating", "fid_user_avg_age"]
+    columns = ["fid", "iid", "rating"]
     # user initial input that will be given to him to rate it before recommendation
     df_new_friends_train = pd.DataFrame(data_new_friends_training, columns=columns)
 
@@ -146,23 +147,14 @@ def update_data(friends_id, friends_age, friends_movie_ratings, df, df_friends, 
 
     return df_train, df_friends, df_movies
 
-
-def get_posters(movie_rows):
-
-    posters = []
-    for _, m in movie_rows.iterrows():
-        print(m['poster_url'])
-        response = requests.get(m['poster_url'])
-        
-        if response.status_code == 200:
-            _base64_encoded_image = base64.b64encode(response.content)
-            posters.append(_base64_encoded_image.decode("utf-8"))
-        else:
-            _base64_encoded_image = base64.b64encode(open("assets/img/logo.jpeg", "rb").read())
-            posters.append(_base64_encoded_image.decode("utf-8"))
-
-    return posters
-
+def onehotencoding2genre(x):
+        genres= ['unknown','action','adventure','animation','childrens','comedy','crime','documentary','drama','fantasy','noir','horror','musical','mystery','romance','scifi','thriller','war','western']
+        ret_val = []
+        for c in genres:
+            g = getattr(x, c)
+            if g == 1:
+                ret_val.append(c)
+        return ret_val
 
 def get_trending_movie_ids(k, df):
     df_movie_count_mean = df.groupby(["movie_id_ml", "title"], as_index=False)["rating"].agg(["count", "mean"]).reset_index()
@@ -176,16 +168,9 @@ def get_trending_movie_ids(k, df):
         return (v/(v+m) * R) + (m/(m+v) * C)
 
 
-    def onehotencoding2genre(x):
-        ret_val = []
-        for c in genres:
-            g = getattr(x, c)
-            if g == 1:
-                ret_val.append(c)
-        return ret_val
     
-    genres= ['unknown','action','adventure','animation','childrens','comedy','crime','documentary','drama','fantasy','noir','horror','musical','mystery','romance','scifi','thriller','war','western']
-
+    
+    
     df_movies = pd.read_csv(f"{DATA_DIR}/movies_cast_company.csv", encoding='utf8')
     df_movies["cast"] = df_movies["cast"].apply(lambda x: json.loads(x))
     df_movies["company"] = df_movies["company"].apply(lambda x: json.loads(x))

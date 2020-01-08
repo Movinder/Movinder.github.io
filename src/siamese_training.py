@@ -62,16 +62,16 @@ def train(data, user_features=None, item_features=None, use_features = False):
 def predict_top_k_movies(model, friends_id, k, data, user_features=None, item_features=None, use_features=False):
     n_users, n_movies = data.shape
     if use_features:
-        prediction = model.predict(friends_id, np.arange(n_movies), user_features=friends_features, item_features=item_features)#predict(model, user_id, np.arange(n_movies))
+        prediction = model.predict(friends_id, np.arange(n_movies), user_features=friends_features, item_features=item_features)
     else:
-        prediction = model.predict(friends_id, np.arange(n_movies))#predict(model, user_id, np.arange(n_movies))
+        prediction = model.predict(friends_id, np.arange(n_movies))
     
     movie_ids = np.arange(data.shape[1])
     # return movie ids
-    return movie_ids[np.argsort(-prediction)][:k]
+    return movie_ids[np.argsort(-prediction)][:k], prediction[np.argsort(-prediction)][:k]
 
 def training(df_train, df_friends, df_movies, new_fid):
-	train_data = create_sparse_matrix(df_train)#, mat_type="ratings")
+	train_data = create_sparse_matrix(df_train)
 
 	# shape [n_users, n_user_features]
 	friends_features = sp.csr_matrix(df_friends.values)
@@ -80,32 +80,5 @@ def training(df_train, df_friends, df_movies, new_fid):
 	model = train(train_data, user_features=friends_features, item_features=item_features, use_features = False)
 
 	k = 18
-	top_movie_ids = predict_top_k_movies(model, new_fid, k, train_data, user_features=friends_features, item_features=item_features, use_features = False)
-	return top_movie_ids
-
-# def known_positives_recommendation():
-#     k = 10
-#     friends_id = friends_id
-#     movie_ids = np.arange(train.shape[1])
-
-#     n_users, n_items = train.shape
-
-#     known_positives = movie_ids[train.tocsr()[friends_id].indices]
-
-#     if use_features:
-#         scores = model.predict(friends_id, np.arange(n_items), user_features=friends_features, item_features=item_features)
-#     else:
-#         scores = model.predict(friends_id, np.arange(n_items))
-
-#     top_items = movie_ids[np.argsort(-scores)]
-
-#     print(f"Friends {friends_id}")
-#     print("     Known positives:")
-
-#     for x in known_positives[:k]:
-#         print(f"        {df[df.iid==x]['iid'].iloc[0]} | {df[df.iid==x]['title'].iloc[0]}" )
-        
-#     print("     Recommended:")
-#     for x in top_items[:k]:
-#         print(f"        {df[df.iid==x]['iid'].iloc[0]} | {df[df.iid==x]['title'].iloc[0]}" )
-
+	top_movie_ids, scores = predict_top_k_movies(model, new_fid, k, train_data, user_features=friends_features, item_features=item_features, use_features = False)
+	return top_movie_ids, scores

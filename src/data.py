@@ -5,9 +5,6 @@ import random
 import numpy as np
 import scipy.sparse as sp
 import json
-from IPython.display import Image
-import base64
-from imdbpie import Imdb
 import requests
 
 DATA_DIR = "../movielens-imdb-exploration/data"

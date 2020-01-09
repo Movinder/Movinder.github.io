@@ -7,7 +7,7 @@ import scipy.sparse as sp
 import json
 import requests
 
-DATA_DIR = "../movielens-imdb-exploration/data"
+DATA_DIR = "static"
 
 def string2ts(string, fmt="%Y-%m-%d %H:%M:%S"):
     dt = datetime.datetime.strptime(string, fmt)

@@ -11,7 +11,7 @@ from src.siamese_training import training
 app = Flask(__name__, template_folder='templates')
 app.secret_key = "super secret key"
 
-DATA_DIR = "movielens-imdb-exploration/data"
+DATA_DIR = "static"
 
 df, df_friends, df_movies, new_fid = initial_data()
 df["genres"] = df.apply(lambda x: onehotencoding2genre(x), axis=1)
@@ -19,7 +19,7 @@ print(df.columns)
 df_movie_urls = df[["iid", "movie_id_ml", "poster_url", "title"]].drop_duplicates()
 trending_movie_ids = get_trending_movie_ids(15, df)
 
-ratings = pd.read_csv('static/ratings.csv')
+ratings = pd.read_csv(f'{DATA_DIR}/ratings.csv')
 mat = np.zeros((max(ratings.user_id), max(ratings.movie_id_ml)))
 ind = np.array(list(zip(list(ratings.user_id-1), list(ratings.movie_id_ml-1))))
 mat[ind[:,0], ind[:,1]] = 1
@@ -29,7 +29,7 @@ column_item = ["movie_id_ml", "title", "release", "vrelease", "url", "unknown",
 				   "crime", "documentary", "drama", "fantasy", "noir", "horror",
 				   "musical", "mystery", "romance", "scifi", "thriller",
 				   "war", "western"]
-df_ML_movies = pd.read_csv('static/u.item.txt', delimiter='|', encoding = "ISO-8859-1", names=column_item) 
+df_ML_movies = pd.read_csv(f'{DATA_DIR}/u.item.txt', delimiter='|', encoding = "ISO-8859-1", names=column_item) 
 df_posters = pd.read_csv(f"{DATA_DIR}/movie_poster.csv", names=["movie_id_ml", "poster_url"])
 df_ML_movies = pd.merge(df_ML_movies,df_posters, on="movie_id_ml")
 

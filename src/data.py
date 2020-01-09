@@ -68,7 +68,7 @@ def get_trending_movie_ids(k, df):
     #Sort movies based on score calculated above
     df = df.sort_values('score', ascending=False).reset_index()
 
-    df = df.head(50)
+    df = df.head(200)
 
     df = df.sample(k)
 

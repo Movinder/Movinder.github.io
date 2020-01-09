@@ -5,7 +5,7 @@ from surprise import NMF, Dataset, Reader
 from scipy.stats import hmean 
 import os
 
-from src.data import initial_data, get_trending_movie_ids, update_data, onehotencoding2genre
+from src.data import get_trending_movie_ids, update_data, onehotencoding2genre
 from src.siamese_training import training
 
 app = Flask(__name__, template_folder='templates')
@@ -13,12 +13,15 @@ app.secret_key = "super secret key"
 
 DATA_DIR = "static"
 
-df, df_friends, df_movies, new_fid = initial_data()
-df["genres"] = df.apply(lambda x: onehotencoding2genre(x), axis=1)
-print(df.columns)
+# Siamese data
+df = pd.read_csv("df.csv", header=0)
+df_friends = pd.read_csv("df_friends.csv", header=0)
+df_movies = pd.read_csv("df_movies.csv", header=0)
+new_fid = len(df_friends.fid.unique())
 df_movie_urls = df[["iid", "movie_id_ml", "poster_url", "title"]].drop_duplicates()
 trending_movie_ids = get_trending_movie_ids(15, df)
 
+# MF data
 ratings = pd.read_csv(f'{DATA_DIR}/ratings.csv')
 mat = np.zeros((max(ratings.user_id), max(ratings.movie_id_ml)))
 ind = np.array(list(zip(list(ratings.user_id-1), list(ratings.movie_id_ml-1))))
@@ -39,7 +42,7 @@ df_ML_movies = pd.merge(df_ML_movies,df_posters, on="movie_id_ml")
 def recommendation_mf(userArray, numUsers, movieIds):
 
 	ratings_dict = {'itemID': list(ratings.movie_id_ml) + list(numUsers*movieIds),
-					'userID': list(ratings.user_id) + [max(ratings.user_id)+1+x for x in range(numUsers) for y in range(15)],
+					'userID': list(ratings.user_id) + [max(ratings.user_id)+1+x for x in range(numUsers) for y in range(len(userArray[0]))],
 					'rating': list(ratings.rating) + [item for sublist in userArray for item in sublist]
 				}
 
@@ -64,8 +67,7 @@ def recommendation_mf(userArray, numUsers, movieIds):
 	recommendation = list(zip(list(df_ML_movies[df_ML_movies.movie_id_ml.isin(movie_ind)].title), 
 					list(df_ML_movies[df_ML_movies.movie_id_ml.isin(movie_ind)].poster_url), 
 					list(scores)))
-	print(recommendation)
-	print(len(recommendation[0]))
+
 	return recommendation
 
 def recommendation_siamese(top_movies, scores):
@@ -83,7 +85,18 @@ def main():
 		
 		# Get recommendations!
 		if 'run-mf-model' in request.form:
+			
+			for i, user_rating in enumerate(session['arr']):
+				session['arr'][i] = user_rating[:-2]
+			session['movieIds'] = session['movieIds'][:-2]
+			rated_movies = min(len(session['arr'][0]), len(session['movieIds']))
+			for i, user_rating in enumerate(session['arr']):
+				session['arr'][i] = user_rating[:rated_movies]
+			session['movieIds'] = session['movieIds'][:rated_movies]
+
 			pu = recommendation_mf(session['arr'], session['members'], session['movieIds'])
+
+
 			session.clear()
 			trending_movie_ids = get_trending_movie_ids(15, df)
 			session['counter'] = -1
@@ -99,6 +112,11 @@ def main():
 			global df_friends
 			global df_movies
 			global new_fid
+
+			for i, user_rating in enumerate(session['arr']):
+				session['arr'][i] = user_rating[:-2]
+			session['movieIds'] = session['movieIds'][:-2]
+
 			df_train, df_friends, df_movies = update_data(new_fid, session['arr'], session['movieIds'], df, df_friends, df_movies)
 			
 			top_movie_ids, scores = training(df_train, df_friends, df_movies, new_fid)

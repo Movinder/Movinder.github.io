@@ -11,12 +11,12 @@ from src.siamese_training import training
 app = Flask(__name__, template_folder='templates')
 app.secret_key = "super secret key"
 
-DATA_DIR = "static"
+DATA_DIR = "static/data"
 
 # Siamese data
-df = pd.read_csv("df.csv", header=0)
-df_friends = pd.read_csv("df_friends.csv", header=0)
-df_movies = pd.read_csv("df_movies.csv", header=0)
+df = pd.read_csv(f"{DATA_DIR}/df.csv", header=0)
+df_friends = pd.read_csv(f"{DATA_DIR}/df_friends.csv", header=0)
+df_movies = pd.read_csv(f"{DATA_DIR}/df_movies.csv", header=0)
 new_fid = len(df_friends.fid.unique())
 df_movie_urls = df[["iid", "movie_id_ml", "poster_url", "title"]].drop_duplicates()
 trending_movie_ids = get_trending_movie_ids(15, df)

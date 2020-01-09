@@ -7,7 +7,7 @@ import scipy.sparse as sp
 import json
 import requests
 
-DATA_DIR = "static"
+DATA_DIR = "static/data"
 
 def update_data(friends_id, ratings, rated_movie_ids, df, df_friends, df_movies):
     df_friends = df_friends.append({"fid": friends_id, "fid_user_avg_age":0}, ignore_index=True)

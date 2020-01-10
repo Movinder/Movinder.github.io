@@ -82,7 +82,7 @@ def recommendation_siamese(top_movies, scores):
 def main():
 
 	if request.method == 'POST':
-		
+		print(request.form)
 		# Get recommendations!
 		if 'run-mf-model' in request.form:
 			
@@ -101,11 +101,13 @@ def main():
 			trending_movie_ids = get_trending_movie_ids(15, df)
 			session['counter'] = -1
 			session['members'] = 0
+			session['userAges'] = []
+			session['userGenders'] = []
 			session['movieIds'] = list(df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)].movie_id_ml)
 			session['top15'] = list(df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)].title) 
 			session['top15_posters'] = list(df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)].poster_url)
 			session['arr'] = None
-			return(render_template('main.html', settings = {'showVote': False, 'people': 0, 'buttonDisable': False, 'recommendation': pu}))
+			return(render_template('main.html', settings = {'friendsInfo':False, 'showVote': False, 'people': 0, 'buttonDisable': False,'chooseRecommendation':False, 'recommendation': pu}))
 		
 		if 'run-siamese-model' in request.form:
 			# global df
@@ -124,29 +126,43 @@ def main():
 
 			pu = recommendation_siamese(top_movies, scores)
 
-			return(render_template('main.html', settings = {'showVote': False, 'people': 0, 'buttonDisable': False, 'recommendation': pu}))
+			return(render_template('main.html', settings = {'friendsInfo':False, 'showVote': False, 'people': 0, 'buttonDisable': False,'chooseRecommendation':False, 'recommendation': pu}))
 		
+		# Collect friends info
+		elif 'person-select-gender-0' in request.form:
+			for i in range(session['members']):
+				print(f'age-{i}', request.form.get(f'age-{i}'))
+				# session['userAges'].append(int(request.form.get(f'age-{i}')))
+				session['userGenders'].append(int(request.form.get(f'person-select-gender-{i}')))
+
+			return(render_template('main.html', settings = {'friendsInfo':False, 'showVote': True, 'people': session['members'], 'buttonDisable': True,'chooseRecommendation':False, 'recommendation': None}))
+
 		# Choose number of people in the group
 		elif 'people-select' in request.form:
 			count = int(request.form.get('people-select'))
 			session['members'] = count
 			session['arr'] = [[0 for x in range(15)] for y in range(count)] 
-			return(render_template('main.html', settings = {'showVote': True, 'people': count, 'buttonDisable': True, 'recommendation': None}))
+			return(render_template('main.html', settings = {'friendsInfo':True, 'showVote': False, 'people': count, 'buttonDisable': True,'chooseRecommendation':False, 'recommendation': None}))
 
 		# All people voting
 		elif 'person-select-0' in request.form:
 			for i in range(session['members']):
-				session['arr'][i][session['counter'] + 1] = int(request.form.get(f'person-select-{i}'))
+				session['arr'][i][session['counter']] = int(request.form.get(f'person-select-{i}'))
 			
-			session['counter'] += 1      
-			return(render_template('main.html', settings = {'showVote': True, 'people': len(request.form), 'buttonDisable': True, 'recommendation': None}))
+			session['counter'] += 1 
+			if session['counter'] < 15:     
+				return(render_template('main.html', settings = {'friendsInfo':False, 'showVote': True, 'people': len(request.form), 'buttonDisable': True,'chooseRecommendation':False, 'recommendation': None}))
+			else:
+				return(render_template('main.html', settings = {'friendsInfo':False, 'showVote': False, 'people': len(request.form), 'buttonDisable': True,'chooseRecommendation':True,  'recommendation': None}))
 
 	elif request.method == 'GET':
 		session.clear()
 		#global trending_movie_ids
 		trending_movie_ids = get_trending_movie_ids(15, df)
-		session['counter'] = -1
+		session['counter'] = 0
 		session['members'] = 0
+		session['userAges'] = []
+		session['userGenders'] = []
 		session['movieIds'] = list(df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)].movie_id_ml) 
 		session['top15'] = list(df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)].title) 
 		session['top15_posters'] = list(df_movie_urls[df_movie_urls.movie_id_ml.isin(trending_movie_ids)].poster_url)
@@ -161,4 +177,5 @@ def serve_dist(path):
 if __name__ == '__main__':
 	# Bind to PORT if defined, otherwise default to 5000.
 	port = int(os.environ.get('PORT', 5000))
-	app.run(host='0.0.0.0', port=port)
+	host= '0.0.0.0'
+	app.run(host=host, port=port)

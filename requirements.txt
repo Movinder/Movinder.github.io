@@ -5,3 +5,4 @@ flask
 sklearn
 scipy
 numpy
+seaborn

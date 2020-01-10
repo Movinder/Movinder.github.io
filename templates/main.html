@@ -67,19 +67,19 @@
 
         <div class="col-md-6">
           {% if settings.showVote %}
-          <div class="card div-center" style="background-color: rgba(0, 46, 102, 0.2);">
+          <div class="card div-center" style="background-color: rgba(0, 46, 102, 0.2);max-width: 100%;">
             <div class="card-body">
               <div class="row" align="center"> 
                 <div class="col-md-12">
-                  <h5 class="card-title text-white">{{ session['top15'][session['counter']+1].title() }}</h5>
-                  <img class="rounded mx-auto d-block" src="{{session['top15_posters'][session['counter']+1]}}" onerror="this.onerror=null; this.src='static/img/no-poster.jpg'" alt="" style="max-height:250px">
+                  <h5 class="card-title text-white">{{ session['top15'][session['counter']].title() }}</h5>
+                  <img class="rounded mx-auto d-block" src="{{session['top15_posters'][session['counter']]}}" onerror="this.onerror=null; this.src='static/img/no-poster.jpg'" alt="" style="max-height:250px">
                 </div>
                 <!-- <div class="col-md-6">
                 </div> -->
               </div>
 
              
-              <p class="card-text text-white">Please vote this movie without changing the voting order.</p>
+              <p class="card-text text-white">Please rate this movie without changing the voting order in your group.</p>
               
               <form action="/" method="POST">
 
@@ -100,9 +100,76 @@
                 </div>
                 {%endfor%}
               
-              {%if session['counter'] < 12%}
-              <button class="btn btn-info" type="submit">Next Movie</button>
+              {%if session['chooseRecommendation'] %}
+              <button class="btn btn-info" type="submit">Recommendation</button>
+              
               {% else %}
+              <button class="btn btn-info" type="submit">Next Movie</button>
+              {% endif %}
+
+              
+
+              <h5 class="text-white" style="float: right;">{{ session['counter']+1 }} / 15</h5>
+            </form>
+
+            </div>
+          </div>
+
+          {% elif settings.friendsInfo%}
+            <div class="card div-center" style="background-color: rgba(0, 46, 102, 0.2);max-width: 100%;">
+              <div class="card-body">
+                <div class="row" align="center"> 
+                  <div class="col-md-12">
+                    <h5 class="card-title text-white">Personal details</h5>
+                    </div>
+                  <!-- <div class="col-md-6">
+                  </div> -->
+                </div>
+
+              
+                <p class="card-text text-white">Please tell us your gender and age so we can make a better prediction.</p>
+                
+                <form action="/" method="POST">
+
+                  {%for i in range(settings.people)%} 
+                  <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">Person {{i+1}}</span>
+                    </div>
+
+                    <select class="form-control" id="person-select-gender-{{ i }}" name="person-select-gender-{{ i }}" aria-placeholder="Gender">
+                      <option value="1">F</optionvalue="{{ o }}">
+                      <option value="0">M</option>
+                    </select>
+                    <!-- <label class="input-group-append" for="Age" aria-placeholder="Age"></label>
+                    <input class="input-group-append" type="number" min="1" max="117" class="form-control" name="age_{{i}}" id="age_{{i}}"  placeholder="Age" required> -->
+                    <input type="number" class="form-control" min="1" max="117" placeholder="Age" aria-label="Age" aria-describedby="basic-addon1" name="age_{{i}}" id="age_{{i}}" required>
+                  </div>
+                  {%endfor%}
+                
+                <button class="btn btn-info" type="submit">Next Movie</button>
+
+            </form>
+
+            </div>
+          </div>
+          {% elif settings.chooseRecommendation %}
+
+          <div class="card div-center" style="background-color: rgba(0, 46, 102, 0.2);max-width: 100%;">
+            <div class="card-body">
+              <div class="row" align="center"> 
+                <div class="col-md-12">
+                  <h5 class="card-title text-white">Choose Recommendation</h5>
+                  </div>
+                <!-- <div class="col-md-6">
+                </div> -->
+              </div>
+
+            
+              <p class="card-text text-white">Select the type of recommendation you want.</p>
+              
+              <form action="/" method="POST">
+
               <br/>
               <div class="row">
                 <div class="col-md-6">
@@ -113,13 +180,12 @@
                 </div>
               </div>
               <br/>
-              {% endif %}
 
-              <h5 class="text-white" style="float: right;">{{ session['counter']+2 }} / 15</h5>
-            </form>
+          </form>
 
-            </div>
           </div>
+        </div>
+
           {% else %}
             {% if settings.recommendation != None %}
             {% block content %}
@@ -127,6 +193,7 @@
             {% endblock %}
             {% endif %}
           {% endif %}
+
         </div>
 
       </div>

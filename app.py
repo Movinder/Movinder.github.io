@@ -6,6 +6,7 @@ from scipy.stats import hmean
 import scipy.sparse as sp
 import os
 import json
+import datetime
 
 from lightfm.data import Dataset as LightFMDataset
 from lightfm import LightFM
@@ -154,7 +155,7 @@ def main():
 						item_features=(eval("("+item_str_for_eval+")") for x in movies),
 						user_features=((eval(friend_str_for_eval)) for x in friends))
 			num_friends, num_items = dataset.interactions_shape()
-			print(f'Num friends: {num_friends}, num_items {num_items}.')
+			print(f'Num friends: {num_friends}, num_items {num_items}. {datetime.datetime.now()}')
 
 			(interactions, weights) = dataset.build_interactions(((int(x['friend_id']), int(x['movie_id_ml']))
 													  for x in ratings))
@@ -162,6 +163,8 @@ def main():
 											  [eval("("+item_str_for_eval+")")]) for x in movies) )
 			user_features = dataset.build_user_features(((x['friend_id'], 
 											  [eval(friend_str_for_eval)]) for x in friends) )
+
+			print(f"Item and User features created {datetime.datetime.now()}")
 
 			epochs = 50 #150
 			lr = 0.015
@@ -177,7 +180,7 @@ def main():
 
 			train_auc = auc_score(model, interactions, user_features=user_features, item_features=item_features).mean()
 
-			print(f'Precision: {train_precision}, AUC: {train_auc}')
+			print(f'Precision: {train_precision}, AUC: {train_auc}, {datetime.datetime.now()}')
 
 			k = 18
 			top_movie_ids, scores = predict_top_k_movies(model, new_friend_id, k, num_items, user_features=user_features, item_features=item_features, use_features = False)
